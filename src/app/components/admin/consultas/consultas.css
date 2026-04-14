@@ -1,0 +1,7 @@
+@import url('../ofertas/ofertas.css');
+
+table th:nth-child(2) { width: 28%; }
+table th:nth-child(3) { width: 16%; }
+table th:nth-child(4) { width: 16%; }
+table th:nth-child(5) { width: 10%; }
+table th:nth-child(6) { width: 12%; }

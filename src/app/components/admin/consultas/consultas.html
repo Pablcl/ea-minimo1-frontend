@@ -1,0 +1,232 @@
+<div class="users-page">
+  <div class="page-header">
+    <div class="title-section">
+      <h1>Gestión de Consultas</h1>
+      <p class="subtitle">Administra preguntas y respuestas sobre ofertas</p>
+    </div>
+    <div class="header-actions">
+      <button (click)="fetchConsultas()" class="btn-reload" [class.spinning]="isLoading()" title="Recargar">
+        <span class="material-symbols-outlined">refresh</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="filters-bar" style="margin-bottom: 24px; padding: 20px; background: white; border-radius: 8px; border: 1px solid #eaeaea;">
+    <h3 style="margin-top: 0; margin-bottom: 16px; font-size: 1.1rem; color: #333;">Añadir Nueva Consulta</h3>
+    <form [formGroup]="consultaForm" (ngSubmit)="onSubmitConsulta()" style="display: flex; gap: 16px; align-items: flex-end; flex-wrap: wrap;">
+      <div style="flex: 1; min-width: 200px;">
+        <label for="askedBy" style="display: block; margin-bottom: 6px; font-size: 0.85rem; color: #666;">Usuario que pregunta</label>
+        <select id="askedBy" formControlName="askedBy" class="filter-select" style="width: 100%; border: 1px solid #ccc; padding: 8px 12px; border-radius: 4px;">
+          <option value="" disabled selected>Selecciona un usuario...</option>
+          @for (user of usuarios(); track user._id) {
+            <option [value]="user._id">{{ user.email }}</option>
+          }
+        </select>
+      </div>
+
+      <div style="flex: 1; min-width: 200px;">
+        <label for="opportunity" style="display: block; margin-bottom: 6px; font-size: 0.85rem; color: #666;">Oferta</label>
+        <select id="opportunity" formControlName="opportunity" class="filter-select" style="width: 100%; border: 1px solid #ccc; padding: 8px 12px; border-radius: 4px;">
+          <option value="" disabled selected>Selecciona una oferta...</option>
+          @for (oferta of ofertas(); track oferta._id) {
+            <option [value]="oferta._id">{{ oferta.companyDescription }}</option>
+          }
+        </select>
+      </div>
+
+      <div style="flex: 2; min-width: 250px;">
+        <label for="question" style="display: block; margin-bottom: 6px; font-size: 0.85rem; color: #666;">Pregunta</label>
+        <input
+          id="question"
+          type="text"
+          formControlName="question"
+          placeholder="Escribe la pregunta..."
+          style="width: 100%; border: 1px solid #ccc; padding: 8px 12px; border-radius: 4px; outline: none;">
+      </div>
+
+      <div>
+        <button type="submit" class="btn-primary" [disabled]="consultaForm.invalid" style="height: 38px;">
+          <span class="material-symbols-outlined">send</span>
+          Crear
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <div class="filters-bar" style="margin-bottom: 24px; padding: 20px; background: white; border-radius: 8px; border: 1px solid #eaeaea;">
+    <h3 style="margin-top: 0; margin-bottom: 16px; font-size: 1.1rem; color: #333;">Añadir Respuesta</h3>
+    <form [formGroup]="respuestaForm" (ngSubmit)="onSubmitRespuesta()" style="display: flex; gap: 16px; align-items: flex-end; flex-wrap: wrap;">
+      <div style="flex: 1; min-width: 220px;">
+        <label for="consultaId" style="display: block; margin-bottom: 6px; font-size: 0.85rem; color: #666;">Consulta</label>
+        <select id="consultaId" formControlName="consultaId" class="filter-select" style="width: 100%; border: 1px solid #ccc; padding: 8px 12px; border-radius: 4px;">
+          <option value="" disabled selected>Selecciona una consulta...</option>
+          @for (consulta of consultas(); track consulta._id) {
+            <option [value]="consulta._id">{{ consulta.question }}</option>
+          }
+        </select>
+      </div>
+
+      <div style="flex: 1; min-width: 200px;">
+        <label for="answeredBy" style="display: block; margin-bottom: 6px; font-size: 0.85rem; color: #666;">Usuario que responde</label>
+        <select id="answeredBy" formControlName="answeredBy" class="filter-select" style="width: 100%; border: 1px solid #ccc; padding: 8px 12px; border-radius: 4px;">
+          <option value="" disabled selected>Selecciona un usuario...</option>
+          @for (user of usuarios(); track user._id) {
+            <option [value]="user._id">{{ user.email }}</option>
+          }
+        </select>
+      </div>
+
+      <div style="flex: 2; min-width: 250px;">
+        <label for="text" style="display: block; margin-bottom: 6px; font-size: 0.85rem; color: #666;">Respuesta</label>
+        <input
+          id="text"
+          type="text"
+          formControlName="text"
+          placeholder="Escribe la respuesta..."
+          style="width: 100%; border: 1px solid #ccc; padding: 8px 12px; border-radius: 4px; outline: none;">
+      </div>
+
+      <div>
+        <button type="submit" class="btn-primary" [disabled]="respuestaForm.invalid" style="height: 38px;">
+          <span class="material-symbols-outlined">reply</span>
+          Responder
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <div class="filters-bar">
+    <app-search-input
+      [placeholder]="'Buscar por pregunta, oferta o usuario...'"
+      (onSearch)="updateSearch($event)">
+    </app-search-input>
+  </div>
+
+  @if (isLoading()) {
+    <div class="state-container">
+      <div class="loader"></div>
+      <p>Cargando consultas...</p>
+    </div>
+  } @else if (error()) {
+    <div class="state-container error">
+      <span class="material-symbols-outlined">error</span>
+      <p>{{ error() }}</p>
+      <button (click)="fetchConsultas()" class="btn-retry">Reintentar</button>
+    </div>
+  } @else {
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th class="checkbox-col">
+              <button (click)="toggleAll()" class="btn-checkbox">
+                <span class="material-symbols-outlined">
+                  {{ isAllSelected() ? 'check_box' : 'check_box_outline_blank' }}
+                </span>
+              </button>
+            </th>
+            <th>Pregunta</th>
+            <th>Oferta</th>
+            <th>Usuario</th>
+            <th>Respuestas</th>
+            <th style="text-align: right;">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (c of paginatedConsultas(); track c._id) {
+            <tr [class.row-selected]="selectedIds().has(c._id!)">
+              <td class="checkbox-col">
+                <button (click)="toggleSelection(c._id!)" class="btn-checkbox">
+                  <span class="material-symbols-outlined">
+                    {{ selectedIds().has(c._id!) ? 'check_box' : 'check_box_outline_blank' }}
+                  </span>
+                </button>
+              </td>
+              <td>
+                <span style="font-weight: 500;">{{ c.question }}</span>
+              </td>
+              <td class="text-muted">{{ c.opportunity }}</td>
+              <td class="text-muted">{{ c.askedBy }}</td>
+              <td>{{ c.answers?.length ?? 0 }}</td>
+              <td>
+                <div class="action-buttons" style="justify-content: flex-end;">
+                  <button (click)="confirmarEliminar(c._id!)" class="btn-icon" title="Eliminar">
+                    <span class="material-symbols-outlined">delete</span>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="6">
+                <div class="empty-state">
+                  <span class="material-symbols-outlined">search_off</span>
+                  <p>No se han encontrado consultas.</p>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+
+      <div class="pagination-footer">
+        <div class="pagination-info">
+          Mostrando
+          <strong>{{ pageStart() }}–{{ pageEnd() }}</strong>
+          de <strong>{{ filteredConsultas().length }}</strong> consultas
+        </div>
+
+        <div class="pagination-controls">
+          <div class="page-size-selector">
+            <span>Filas:</span>
+            <select (change)="pageSize.set(+$any($event.target).value); currentPage.set(1)" class="page-size-select">
+              <option value="5" [selected]="pageSize() === 5">5</option>
+              <option value="10" [selected]="pageSize() === 10">10</option>
+              <option value="20" [selected]="pageSize() === 20">20</option>
+            </select>
+          </div>
+
+          <div class="page-buttons">
+            <button (click)="prevPage()" [disabled]="currentPage() === 1" class="btn-page btn-page-arrow">
+              <span class="material-symbols-outlined">chevron_left</span>
+            </button>
+
+            @for (page of pageNumbers(); track $index) {
+              @if (page === -1) {
+                <span class="page-ellipsis">…</span>
+              } @else {
+                <button
+                  (click)="goToPage(page)"
+                  class="btn-page"
+                  [class.active]="currentPage() === page">
+                  {{ page }}
+                </button>
+              }
+            }
+
+            <button (click)="nextPage()" [disabled]="currentPage() === totalPages()" class="btn-page btn-page-arrow">
+              <span class="material-symbols-outlined">chevron_right</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+  @if (someSelected()) {
+    <div class="bulk-actions-overlay">
+      <div class="bulk-actions-bar">
+        <div class="selection-info">
+          <span class="count">{{ selectedIds().size }}</span>
+        </div>
+
+        <div class="bulk-buttons">
+          <button (click)="clearSelection()" class="btn-bulk-cancel">
+            <span class="material-symbols-outlined">close</span>
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>
